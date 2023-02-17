@@ -20,7 +20,7 @@ func (app *application) routes() http.Handler {
 		MaxAge:           300,
 	}))
 
-	mux.Get("/v1/users/all", func(w http.ResponseWriter, r *http.Request) {
+	mux.Get("/v1/hello", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
@@ -31,6 +31,8 @@ func (app *application) routes() http.Handler {
 		`
 		w.Write([]byte(res))
 	})
+
+	mux.Post("/v1/users/signup", app.signUp)
 
 	return mux
 }

@@ -9,24 +9,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type pgPool struct {
-	db *pgxpool.Pool
-}
-
 var (
-	pgInstance *pgPool
+	pgInstance *pgxpool.Pool
 	pgOnce     sync.Once
 )
 
-func (p *pgPool) Close() {
-	p.db.Close()
-}
-
-func (p *pgPool) Ping(ctx context.Context) error {
-	return p.db.Ping(ctx)
-}
-
-func NewPGPool(ctx context.Context, dsn string) (*pgPool, error) {
+func NewPGPool(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
 	pgOnce.Do(func() {
 		db, err := pgxpool.New(ctx, dsn)
 		if err != nil {
@@ -34,10 +22,10 @@ func NewPGPool(ctx context.Context, dsn string) (*pgPool, error) {
 			os.Exit(1)
 		}
 
-		pgInstance = &pgPool{db}
+		pgInstance = db
 	})
 
-	err := pgInstance.db.Ping(ctx)
+	err := pgInstance.Ping(ctx)
 	if err != nil {
 		return nil, err
 	}
