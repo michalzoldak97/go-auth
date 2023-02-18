@@ -7,10 +7,8 @@ import (
 )
 
 func (app *application) validateNewUser(u data.User) error {
-	fmt.Println(u.Email)
 	duplicate, err := app.models.User.GetByEmail(u.Email)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 

@@ -47,17 +47,17 @@ func (u *User) Create(user User) (string, error) {
 func (u *User) GetByEmail(email string) ([]User, error) {
 	query := `
 		SELECT 
-			user_id AS "ID",
-			email AS "Email",
-			first_name AS "FirstName",
-			last_name AS "LastName",
-			password AS "Password",
-			created_at AS "CreatedAt",
-			updated_at AS "UpdatedAt"
-		FROM auth.tbl_user
+			u.user_id AS "ID",
+			u.email AS "Email",
+			u.first_name AS "FirstName",
+			u.last_name AS "LastName",
+			u.password AS "Password",
+			u.created_at AS "CreatedAt",
+			u.updated_at AS "UpdatedAt"
+		FROM auth.tbl_user u
 		WHERE
-			email = $1
-			AND deactivated_at IS NULL
+			u.email = $1
+			AND u.deactivated_at IS NULL
 	`
 	rows, _ := selectRows(query, email)
 	defer rows.Close()

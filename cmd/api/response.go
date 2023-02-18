@@ -57,7 +57,9 @@ func (app *application) writeJSON(w http.ResponseWriter, status int, data any, h
 }
 
 func (app *application) errorJSON(w http.ResponseWriter, err error, status ...int) error {
-	statusCode := http.StatusBadRequest
+	statusCode := http.StatusInternalServerError
+
+	app.errorLog.Println(err)
 
 	if len(status) > 0 {
 		statusCode = status[0]
