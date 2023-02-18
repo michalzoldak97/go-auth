@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/michalzoldak97/go-auth/internal/data"
 )
@@ -14,6 +15,8 @@ func (app *application) signUp(w http.ResponseWriter, r *http.Request) {
 		app.errorJSON(w, err)
 		return
 	}
+
+	u.Email = strings.ToLower(u.Email)
 
 	err = app.validateNewUser(u)
 	if err != nil {

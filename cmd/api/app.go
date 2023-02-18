@@ -27,6 +27,8 @@ type application struct {
 
 func (app *application) loadAppConfig() error {
 
+	// load config from env
+
 	env := os.Getenv("ENV")
 	if env == "" {
 		return errors.New("environment not specified")
@@ -45,6 +47,8 @@ func (app *application) loadAppConfig() error {
 	app.config.env = env
 	app.config.port = port
 	app.config.maxPOSTBytes = int64(max_post_bytes)
+
+	// load config from db
 
 	return nil
 }
