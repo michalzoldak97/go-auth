@@ -6,8 +6,19 @@ import (
 	"github.com/michalzoldak97/go-auth/internal/data"
 )
 
-func validatePassASCII(phrase string) bool {
-	isLower, isUpper, isNum, isSpec := false, false, false, false
+func (app *application) validatePassASCII(phrase string) bool {
+
+	pLen := len(phrase)
+
+	if pLen < app.security.PassMinLen ||
+		pLen > app.security.PassMaxLen {
+		return false
+	}
+
+	isLower := !app.security.PassLower
+	isUpper := !app.security.PassUpper
+	isNum := !app.security.PassNum
+	isSpec := !app.security.PassSpecial
 
 	for _, char := range phrase {
 		asciiVal := int(char)
@@ -42,6 +53,10 @@ func validatePassASCII(phrase string) bool {
 }
 
 func (app *application) validateNewUser(u data.User) error {
+	if !app.validatePassASCII(u.Password) {
+		return fmt.Errorf("password does not meet the minimum complexity requirements")
+	}
+
 	duplicate, err := app.models.User.GetByEmail(u.Email)
 	if err != nil {
 		return err

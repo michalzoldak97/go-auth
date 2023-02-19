@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+type appConfig struct {
+	env  string
+	port int
+}
+
 func getDSN() (string, error) {
 	dsnParams := map[string]string{
 		"user":                          "POSTGRES_USER",

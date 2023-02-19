@@ -17,7 +17,7 @@ type jsonResponse struct {
 type envelope map[string]interface{}
 
 func (app *application) readJSON(w http.ResponseWriter, r *http.Request, data any) error {
-	r.Body = http.MaxBytesReader(w, r.Body, app.config.maxPOSTBytes)
+	r.Body = http.MaxBytesReader(w, r.Body, app.security.MaxPOSTBytes)
 
 	dec := json.NewDecoder(r.Body)
 	err := dec.Decode(data)
@@ -68,7 +68,9 @@ func (app *application) errorJSON(w http.ResponseWriter, err error, status ...in
 	var res jsonResponse
 	res.Error = true
 
-	if app.config.env == "dev" {
+	if app.config.env == "dev" ||
+		err.Error() == "environment not specified" ||
+		err.Error() == "password does not meet the minimum complexity requirements" {
 		res.Message = fmt.Sprintf("error: %v", err)
 	} else {
 		res.Message = "something went wrong, contact the administrator"

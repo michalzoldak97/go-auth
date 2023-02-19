@@ -20,6 +20,7 @@ var (
 type Models struct {
 	User  User
 	Token Token
+	SecurityConfig
 }
 
 func selectRows(query string, params ...any) (pgx.Rows, error) {

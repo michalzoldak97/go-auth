@@ -12,14 +12,9 @@ import (
 	"github.com/michalzoldak97/go-auth/internal/data"
 )
 
-type appConfig struct {
-	env          string
-	port         int
-	maxPOSTBytes int64
-}
-
 type application struct {
 	config   appConfig
+	security data.SecurityConfig
 	infoLog  *log.Logger
 	errorLog *log.Logger
 	models   data.Models
@@ -39,25 +34,32 @@ func (app *application) loadAppConfig() error {
 		return err
 	}
 
-	max_post_bytes, err := strconv.Atoi(os.Getenv("MAX_POST_BYTES"))
+	app.config.env = env
+	app.config.port = port
+
+	// load config from db
+
+	app.security, err = app.models.SecurityConfig.GetConfig()
 	if err != nil {
 		return err
 	}
-
-	app.config.env = env
-	app.config.port = port
-	app.config.maxPOSTBytes = int64(max_post_bytes)
-
-	// load config from db
 
 	return nil
 }
 
 func (app *application) loadApp(dbPool *pgxpool.Pool) error {
+	var err error
+
+	app.models, err = data.New(dbPool)
+	if err != nil {
+		return err
+	}
+
 	app.config = appConfig{}
 
-	err := app.loadAppConfig()
+	err = app.loadAppConfig()
 	if err != nil {
+		fmt.Println("Error loading config")
 		return err
 	}
 
@@ -66,11 +68,6 @@ func (app *application) loadApp(dbPool *pgxpool.Pool) error {
 
 	app.infoLog = infoLog
 	app.errorLog = erroroLog
-
-	app.models, err = data.New(dbPool)
-	if err != nil {
-		return err
-	}
 
 	return nil
 }

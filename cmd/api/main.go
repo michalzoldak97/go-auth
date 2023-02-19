@@ -26,7 +26,10 @@ func main() {
 	defer dbPool.Close()
 
 	app := &application{}
-	app.loadApp(dbPool)
+	err = app.loadApp(dbPool)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	err = app.serve()
 	if err != nil {
