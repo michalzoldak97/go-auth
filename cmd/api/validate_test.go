@@ -11,6 +11,37 @@ import (
 
 var testRes bool
 
+func Test_validateEmail(t *testing.T) {
+	var testApp application
+
+	testApp.security = data.SecurityConfig{
+		EmailDomainsRestricted: true,
+		AllowedDomains:         []string{"gmail.com", "buziaczek.pl"},
+	}
+
+	emails := map[string]bool{
+		"boena4375/[2jJ3]":          false,
+		"test@test.com":             false,
+		"&test@gmail.com%":          false,
+		"bad-email@test":            false,
+		"eloelo320@buziaczek.pl":    true,
+		"<>$DROP$**_-_//@gmail.com": false,
+		"HelloŁfrom@gmail.com":      true,
+		"siema siema @gmail.com":    false}
+
+	for email, res := range emails {
+		if testApp.validateEmail(email) != res {
+			t.Errorf("Email validation failed for phrase %v", email)
+		}
+	}
+
+	testApp.security.EmailDomainsRestricted = false
+
+	if !testApp.validateEmail("hello@test.com") {
+		t.Errorf("the domain should not be verified")
+	}
+}
+
 func Test_validateASCIIPass(t *testing.T) {
 
 	var testApp application
@@ -35,7 +66,7 @@ func Test_validateASCIIPass(t *testing.T) {
 
 	for phrase, res := range phrases {
 		if testApp.validatePassASCII(phrase) != res {
-			t.Errorf("Validation failed for phrase %v", phrase)
+			t.Errorf("Password validation failed for phrase %v", phrase)
 		}
 	}
 }

@@ -3,6 +3,7 @@ package data
 import (
 	"errors"
 	"strconv"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -15,7 +16,7 @@ type SecurityConfig struct {
 	PassMinLen             int
 	PassMaxLen             int
 	EmailDomainsRestricted bool
-	AllowedDomains         string
+	AllowedDomains         []string
 	MaxPOSTBytes           int64
 }
 
@@ -31,6 +32,15 @@ type cfgReceiver struct {
 	MaxPOSTBytes           string
 }
 
+func parseAllowedDomains(areRequired bool, domainsCsv string) ([]string, error) {
+
+	if !areRequired {
+		return []string{}, nil
+	}
+
+	return strings.Split(domainsCsv, ","), nil
+}
+
 func extractConfig(c cfgReceiver) (SecurityConfig, error) {
 	var s SecurityConfig
 	var err error
@@ -42,9 +52,13 @@ func extractConfig(c cfgReceiver) (SecurityConfig, error) {
 	s.PassMinLen, err = strconv.Atoi(c.PassMinLen)
 	s.PassMaxLen, err = strconv.Atoi(c.PassMaxLen)
 	s.EmailDomainsRestricted, err = strconv.ParseBool(c.EmailDomainsRestricted)
-	s.AllowedDomains = c.AllowedDomains
 	s.MaxPOSTBytes, err = strconv.ParseInt(c.MaxPOSTBytes, 10, 64)
 
+	if err != nil {
+		return SecurityConfig{}, err
+	}
+
+	s.AllowedDomains, err = parseAllowedDomains(s.EmailDomainsRestricted, c.AllowedDomains)
 	if err != nil {
 		return SecurityConfig{}, err
 	}

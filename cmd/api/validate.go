@@ -1,10 +1,34 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"net/mail"
+	"strings"
 
 	"github.com/michalzoldak97/go-auth/internal/data"
 )
+
+func (app *application) validateEmail(email string) bool {
+	_, err := mail.ParseAddress(email)
+	if err != nil {
+		return false
+	}
+
+	if !app.security.EmailDomainsRestricted {
+		return true
+	}
+
+	domain := strings.Split(email, "@")[1]
+
+	for _, allowed := range app.security.AllowedDomains {
+		if domain == allowed {
+			return true
+		}
+	}
+
+	return false
+}
 
 func (app *application) validatePassASCII(phrase string) bool {
 
@@ -54,7 +78,11 @@ func (app *application) validatePassASCII(phrase string) bool {
 
 func (app *application) validateNewUser(u data.User) error {
 	if !app.validatePassASCII(u.Password) {
-		return fmt.Errorf("password does not meet the minimum complexity requirements")
+		return errors.New("password does not meet the minimum complexity requirements")
+	}
+
+	if !app.validateEmail(u.Email) {
+		return errors.New("invalid email")
 	}
 
 	duplicate, err := app.models.User.GetByEmail(u.Email)

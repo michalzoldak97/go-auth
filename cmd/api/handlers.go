@@ -16,11 +16,14 @@ func (app *application) signUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u.Email = strings.ToLower(u.Email)
+	// email(username) -> trim whitespaces and convert to lowercase
+	rawEmail := u.Email
+	rawEmail = strings.TrimSpace(rawEmail)
+	u.Email = strings.ToLower(rawEmail)
 
 	err = app.validateNewUser(u)
 	if err != nil {
-		app.errorJSON(w, err)
+		app.errorJSON(w, err, http.StatusBadRequest)
 		return
 	}
 
