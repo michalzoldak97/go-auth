@@ -2,19 +2,14 @@ package data
 
 import (
 	"context"
-	"errors"
-	"os"
-	"strconv"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var (
-	db        *pgxpool.Pool
-	dbTimeout time.Duration
-	passCost  int
+	db       *pgxpool.Pool
+	security SecurityConfig
 )
 
 type Models struct {
@@ -24,7 +19,7 @@ type Models struct {
 }
 
 func selectRows(query string, params ...any) (pgx.Rows, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), security.DBTimeout)
 	defer cancel()
 
 	rows, err := db.Query(ctx, query, params...)
@@ -36,7 +31,7 @@ func selectRows(query string, params ...any) (pgx.Rows, error) {
 }
 
 func selectRow(query string, params ...any) pgx.Row {
-	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), security.DBTimeout)
 	defer cancel()
 
 	row := db.QueryRow(ctx, query, params...)
@@ -44,31 +39,13 @@ func selectRow(query string, params ...any) pgx.Row {
 	return row
 }
 
-func loadEnvVars() error {
-	dt, err := strconv.Atoi(os.Getenv("DB_TIMEOUT"))
-	pc, err := strconv.Atoi(os.Getenv("PASS_COST"))
-
-	if err != nil {
-		return errors.New("failed to load model env vars")
-	}
-
-	dbTimeout = time.Second * time.Duration(dt)
-	passCost = pc
-
-	return nil
-}
-
 func New(dbPool *pgxpool.Pool) (Models, error) {
-
-	err := loadEnvVars()
-	if err != nil {
-		return Models{}, err
-	}
 
 	db = dbPool
 
 	return Models{
-		User:  User{},
-		Token: Token{},
+		User:           User{},
+		Token:          Token{},
+		SecurityConfig: SecurityConfig{},
 	}, nil
 }

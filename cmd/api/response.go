@@ -71,7 +71,8 @@ func (app *application) errorJSON(w http.ResponseWriter, err error, status ...in
 	if app.config.env == "dev" ||
 		err.Error() == "environment not specified" ||
 		err.Error() == "password does not meet the minimum complexity requirements" ||
-		err.Error() == "invalid email" {
+		err.Error() == "invalid email" ||
+		err.Error() == "invalid email/password" {
 		res.Message = fmt.Sprintf("error: %v", err)
 	} else {
 		res.Message = "something went wrong, contact the administrator"

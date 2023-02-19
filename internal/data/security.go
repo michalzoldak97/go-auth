@@ -1,9 +1,11 @@
 package data
 
 import (
+	"context"
 	"errors"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -15,9 +17,11 @@ type SecurityConfig struct {
 	PassSpecial            bool
 	PassMinLen             int
 	PassMaxLen             int
+	PassCost               int
 	EmailDomainsRestricted bool
 	AllowedDomains         []string
 	MaxPOSTBytes           int64
+	DBTimeout              time.Duration
 }
 
 type cfgReceiver struct {
@@ -27,9 +31,11 @@ type cfgReceiver struct {
 	PassSpecial            string
 	PassMinLen             string
 	PassMaxLen             string
+	PassCost               string
 	EmailDomainsRestricted string
 	AllowedDomains         string
 	MaxPOSTBytes           string
+	DBTimeout              string
 }
 
 func parseAllowedDomains(areRequired bool, domainsCsv string) ([]string, error) {
@@ -51,14 +57,18 @@ func extractConfig(c cfgReceiver) (SecurityConfig, error) {
 	s.PassSpecial, err = strconv.ParseBool(c.PassSpecial)
 	s.PassMinLen, err = strconv.Atoi(c.PassMinLen)
 	s.PassMaxLen, err = strconv.Atoi(c.PassMaxLen)
+	s.PassCost, err = strconv.Atoi(c.PassCost)
 	s.EmailDomainsRestricted, err = strconv.ParseBool(c.EmailDomainsRestricted)
 	s.MaxPOSTBytes, err = strconv.ParseInt(c.MaxPOSTBytes, 10, 64)
+	dbTimeout, err := strconv.Atoi(c.DBTimeout)
 
 	if err != nil {
 		return SecurityConfig{}, err
 	}
 
 	s.AllowedDomains, err = parseAllowedDomains(s.EmailDomainsRestricted, c.AllowedDomains)
+	s.DBTimeout = time.Second * time.Duration(dbTimeout)
+
 	if err != nil {
 		return SecurityConfig{}, err
 	}
@@ -67,6 +77,9 @@ func extractConfig(c cfgReceiver) (SecurityConfig, error) {
 }
 
 func (sc *SecurityConfig) GetConfig() (SecurityConfig, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+
 	query := `
 		SELECT
 			security_config_jsonb ->> 'pass_lower'               AS "PassLower",
@@ -75,25 +88,30 @@ func (sc *SecurityConfig) GetConfig() (SecurityConfig, error) {
 			security_config_jsonb ->> 'pass_special'             AS "PassSpecial",
 			security_config_jsonb ->> 'pass_min_len'             AS "PassMinLen",
 			security_config_jsonb ->> 'pass_max_len'             AS "PassMaxLen",
+			security_config_jsonb ->> 'pass_cost'             	 AS "PassCost",
 			security_config_jsonb ->> 'email_domains_restricted' AS "EmailDomainsRestricted",
 			security_config_jsonb ->> 'allowed_domains'          AS "AllowedDomains",
-			security_config_jsonb ->> 'max_post_bytes'           AS "MaxPOSTBytes"
+			security_config_jsonb ->> 'max_post_bytes'           AS "MaxPOSTBytes",
+			security_config_jsonb ->> 'db_timeout'           	 AS "DBTimeout"
 		FROM auth.tbl_config
 		WHERE
 			is_active
 	`
-	rows, _ := selectRows(query)
+	rows, err := db.Query(ctx, query)
+
 	defer rows.Close()
 
 	var cfgs []cfgReceiver
 
-	cfgs, err := pgx.CollectRows(rows, pgx.RowToStructByName[cfgReceiver])
+	cfgs, err = pgx.CollectRows(rows, pgx.RowToStructByName[cfgReceiver])
 	if err != nil {
 		return SecurityConfig{}, err
 	}
 
 	if len(cfgs) > 0 {
-		return extractConfig(cfgs[0])
+		res, err := extractConfig(cfgs[0])
+		security = res
+		return res, err
 	}
 
 	return SecurityConfig{}, errors.New("failed to load security config")

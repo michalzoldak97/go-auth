@@ -19,7 +19,7 @@ type User struct {
 
 func (u *User) Create(user User) (string, error) {
 
-	hashPass, err := bcrypt.GenerateFromPassword([]byte(user.Password), passCost)
+	hashPass, err := bcrypt.GenerateFromPassword([]byte(user.Password), security.PassCost)
 	if err != nil {
 		return "", err
 	}
@@ -63,4 +63,14 @@ func (u *User) GetByEmail(email string) ([]User, error) {
 	defer rows.Close()
 
 	return pgx.CollectRows(rows, pgx.RowToStructByName[User])
+}
+
+func (u *User) IsPasswordValid(pass string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(pass))
+
+	if err != nil {
+		return false
+	}
+
+	return true
 }

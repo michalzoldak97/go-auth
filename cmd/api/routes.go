@@ -33,6 +33,7 @@ func (app *application) routes() http.Handler {
 	})
 
 	mux.Post("/v1/users/signup", app.signUp)
+	mux.Post("/v1/users/login", app.login)
 
 	return mux
 }
