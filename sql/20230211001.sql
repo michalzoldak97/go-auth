@@ -2,7 +2,6 @@ CREATE TABLE auth.tbl_token(
     token_id uuid DEFAULT uuid_generate_v4 (),
     email VARCHAR(255) NOT NULL,
     token VARCHAR(255) NOT NULL,
-    token_hash BYTEA NOT NULL,
     created_at TIMESTAMP DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMP DEFAULT NOW() NOT NULL,
     expires_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,

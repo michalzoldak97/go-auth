@@ -16,6 +16,7 @@ type Models struct {
 	User  User
 	Token Token
 	SecurityConfig
+	UserLoginAttempt
 }
 
 func selectRows(query string, params ...any) (pgx.Rows, error) {
@@ -37,6 +38,15 @@ func selectRow(query string, params ...any) pgx.Row {
 	row := db.QueryRow(ctx, query, params...)
 
 	return row
+}
+
+func execRow(query string, params ...any) error {
+	ctx, cancel := context.WithTimeout(context.Background(), security.DBTimeout)
+	defer cancel()
+
+	_, err := db.Exec(ctx, query, params...)
+
+	return err
 }
 
 func New(dbPool *pgxpool.Pool) (Models, error) {

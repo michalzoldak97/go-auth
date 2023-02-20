@@ -22,6 +22,7 @@ type SecurityConfig struct {
 	AllowedDomains         []string
 	MaxPOSTBytes           int64
 	DBTimeout              time.Duration
+	TokenExpiration        time.Duration
 }
 
 type cfgReceiver struct {
@@ -36,6 +37,7 @@ type cfgReceiver struct {
 	AllowedDomains         string
 	MaxPOSTBytes           string
 	DBTimeout              string
+	TokenExpiration        string
 }
 
 func parseAllowedDomains(areRequired bool, domainsCsv string) ([]string, error) {
@@ -61,6 +63,7 @@ func extractConfig(c cfgReceiver) (SecurityConfig, error) {
 	s.EmailDomainsRestricted, err = strconv.ParseBool(c.EmailDomainsRestricted)
 	s.MaxPOSTBytes, err = strconv.ParseInt(c.MaxPOSTBytes, 10, 64)
 	dbTimeout, err := strconv.Atoi(c.DBTimeout)
+	tokenExpiration, err := strconv.Atoi(c.TokenExpiration)
 
 	if err != nil {
 		return SecurityConfig{}, err
@@ -68,6 +71,7 @@ func extractConfig(c cfgReceiver) (SecurityConfig, error) {
 
 	s.AllowedDomains, err = parseAllowedDomains(s.EmailDomainsRestricted, c.AllowedDomains)
 	s.DBTimeout = time.Second * time.Duration(dbTimeout)
+	s.TokenExpiration = time.Hour * time.Duration(tokenExpiration)
 
 	if err != nil {
 		return SecurityConfig{}, err
@@ -92,7 +96,8 @@ func (sc *SecurityConfig) GetConfig() (SecurityConfig, error) {
 			security_config_jsonb ->> 'email_domains_restricted' AS "EmailDomainsRestricted",
 			security_config_jsonb ->> 'allowed_domains'          AS "AllowedDomains",
 			security_config_jsonb ->> 'max_post_bytes'           AS "MaxPOSTBytes",
-			security_config_jsonb ->> 'db_timeout'           	 AS "DBTimeout"
+			security_config_jsonb ->> 'db_timeout'           	 AS "DBTimeout",
+			security_config_jsonb ->> 'token_expiration'         AS "TokenExpiration"
 		FROM auth.tbl_config
 		WHERE
 			is_active

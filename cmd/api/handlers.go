@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -45,6 +46,17 @@ func (app *application) signUp(w http.ResponseWriter, r *http.Request) {
 	app.writeJSON(w, http.StatusCreated, res)
 }
 
+func (app *application) saveLoginAttempt(w http.ResponseWriter, ula data.UserLoginAttempt) {
+	if !ula.Success {
+		app.errorJSON(w, errors.New(ula.Message), http.StatusUnauthorized)
+	}
+
+	err := app.models.UserLoginAttempt.Create(ula)
+	if err != nil {
+		app.errorLog.Println(err)
+	}
+}
+
 func (app *application) login(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Email    string `json:"email"`
@@ -60,39 +72,71 @@ func (app *application) login(w http.ResponseWriter, r *http.Request) {
 	req.Email = strings.TrimSpace(req.Email)
 	req.Email = strings.ToLower(req.Email)
 
+	if len(req.Email) > 254 {
+		req.Email = "email too long"
+	}
+
 	if !app.validatePassASCII(req.Password) {
-		err = errors.New("password does not meet the minimum complexity requirements")
-		app.errorJSON(w, err)
+		app.saveLoginAttempt(w, data.UserLoginAttempt{
+			Email:   req.Email,
+			Message: "password does not meet the minimum complexity requirements",
+			Success: false,
+		})
 		return
 	}
 
 	if !app.validateEmail(req.Email) {
-		err = errors.New("invalid email")
-		app.errorJSON(w, err)
+		app.saveLoginAttempt(w, data.UserLoginAttempt{
+			Email:   req.Email,
+			Message: "invalid email",
+			Success: false,
+		})
 		return
 	}
 
 	users, err := app.models.User.GetByEmail(req.Email)
 
 	if err != nil || len(users) != 1 {
-		err = errors.New("error fetching the user data")
-		app.errorJSON(w, err, http.StatusUnauthorized)
+		app.saveLoginAttempt(w, data.UserLoginAttempt{
+			Email:   req.Email,
+			Message: "error fetching the user data",
+			Success: false,
+		})
 		return
 	}
 
 	user := users[0]
 
 	if !user.IsPasswordValid(req.Password) {
-		err = errors.New("invalid email/password")
-		app.errorJSON(w, err)
+		app.saveLoginAttempt(w, data.UserLoginAttempt{
+			Email:   req.Email,
+			Message: "invalid email/password",
+			Success: false,
+		})
+		return
+	}
+
+	token, err := app.models.Token.Create(user)
+	if err != nil {
+		app.saveLoginAttempt(w, data.UserLoginAttempt{
+			Email:   req.Email,
+			Message: fmt.Sprintf("token creation failed: %v", err),
+			Success: false,
+		})
 		return
 	}
 
 	res := jsonResponse{
 		Error:   false,
-		Message: "user found",
-		Data:    envelope{"user": user},
+		Message: "logged in",
+		Data:    envelope{"token": token},
 	}
 
 	app.writeJSON(w, http.StatusOK, res)
+
+	app.saveLoginAttempt(w, data.UserLoginAttempt{
+		Email:   req.Email,
+		Message: "logged in",
+		Success: true,
+	})
 }
