@@ -3,10 +3,12 @@ package data
 import (
 	"context"
 	"errors"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
+	"aidanwoods.dev/go-paseto"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -23,6 +25,9 @@ type SecurityConfig struct {
 	MaxPOSTBytes           int64
 	DBTimeout              time.Duration
 	TokenExpiration        time.Duration
+	TokenSecret            []byte
+	TokenKey               paseto.V4SymmetricKey
+	TokenLen               int
 }
 
 type cfgReceiver struct {
@@ -64,14 +69,18 @@ func extractConfig(c cfgReceiver) (SecurityConfig, error) {
 	s.MaxPOSTBytes, err = strconv.ParseInt(c.MaxPOSTBytes, 10, 64)
 	dbTimeout, err := strconv.Atoi(c.DBTimeout)
 	tokenExpiration, err := strconv.Atoi(c.TokenExpiration)
+	tokenSecret := os.Getenv("PASETO_SECRET")
+	s.TokenKey = paseto.NewV4SymmetricKey()
+	s.TokenLen, err = strconv.Atoi(os.Getenv("PASETO_LEN"))
 
-	if err != nil {
+	if err != nil || tokenSecret == "" {
 		return SecurityConfig{}, err
 	}
 
 	s.AllowedDomains, err = parseAllowedDomains(s.EmailDomainsRestricted, c.AllowedDomains)
 	s.DBTimeout = time.Second * time.Duration(dbTimeout)
 	s.TokenExpiration = time.Hour * time.Duration(tokenExpiration)
+	s.TokenSecret = []byte(tokenSecret)
 
 	if err != nil {
 		return SecurityConfig{}, err

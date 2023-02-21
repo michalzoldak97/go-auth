@@ -35,5 +35,7 @@ func (app *application) routes() http.Handler {
 	mux.Post("/v1/users/signup", app.signUp)
 	mux.Post("/v1/users/login", app.login)
 
+	mux.Get("/v1/users/validate", app.validateToken)
+
 	return mux
 }

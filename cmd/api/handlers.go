@@ -140,3 +140,29 @@ func (app *application) login(w http.ResponseWriter, r *http.Request) {
 		Success: true,
 	})
 }
+
+func (app *application) validateToken(w http.ResponseWriter, r *http.Request) {
+	reqToken := r.Header.Get("Authorization")
+
+	splitToken := strings.Split(reqToken, "Bearer")
+	if len(splitToken) != 2 {
+		fmt.Println(splitToken[0], splitToken[1])
+		app.errorJSON(w, errors.New("security token malformed"), http.StatusForbidden)
+		return
+	}
+
+	reqToken = strings.TrimSpace(splitToken[1])
+
+	err := app.models.Token.Validate(reqToken)
+	if err != nil {
+		app.errorJSON(w, err, http.StatusForbidden)
+		return
+	}
+
+	res := jsonResponse{
+		Error:   false,
+		Message: "token valid",
+	}
+
+	app.writeJSON(w, http.StatusOK, res)
+}
