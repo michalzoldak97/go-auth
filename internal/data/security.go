@@ -28,6 +28,7 @@ type SecurityConfig struct {
 	TokenSecret            []byte
 	TokenKey               paseto.V4SymmetricKey
 	TokenLen               int
+	LoginSignUpRateLimit   int
 }
 
 type cfgReceiver struct {
@@ -43,6 +44,7 @@ type cfgReceiver struct {
 	MaxPOSTBytes           string
 	DBTimeout              string
 	TokenExpiration        string
+	LoginSignUpRateLimit   string
 }
 
 func parseAllowedDomains(areRequired bool, domainsCsv string) ([]string, error) {
@@ -72,6 +74,7 @@ func extractConfig(c cfgReceiver) (SecurityConfig, error) {
 	tokenSecret := os.Getenv("PASETO_SECRET")
 	s.TokenKey = paseto.NewV4SymmetricKey()
 	s.TokenLen, err = strconv.Atoi(os.Getenv("PASETO_LEN"))
+	s.LoginSignUpRateLimit, err = strconv.Atoi(c.LoginSignUpRateLimit)
 
 	if err != nil || tokenSecret == "" {
 		return SecurityConfig{}, err
@@ -106,7 +109,8 @@ func (sc *SecurityConfig) GetConfig() (SecurityConfig, error) {
 			security_config_jsonb ->> 'allowed_domains'          AS "AllowedDomains",
 			security_config_jsonb ->> 'max_post_bytes'           AS "MaxPOSTBytes",
 			security_config_jsonb ->> 'db_timeout'           	 AS "DBTimeout",
-			security_config_jsonb ->> 'token_expiration'         AS "TokenExpiration"
+			security_config_jsonb ->> 'token_expiration'         AS "TokenExpiration",
+			security_config_jsonb ->> 'login_sign_up_rate_limit' AS "LoginSignUpRateLimit"
 		FROM auth.tbl_config
 		WHERE
 			is_active

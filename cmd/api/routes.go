@@ -2,10 +2,12 @@ package main
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/go-chi/httprate"
 )
 
 func (app *application) routes() http.Handler {
@@ -20,20 +22,17 @@ func (app *application) routes() http.Handler {
 		MaxAge:           300,
 	}))
 
-	mux.Get("/v1/hello", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+	mux.Route("/v1/users", func(mux chi.Router) {
 
-		res := `
-			{
-				"message": "Hello from backend"
-			}
-		`
-		w.Write([]byte(res))
+		mux.Use(httprate.Limit(
+			app.security.LoginSignUpRateLimit,
+			time.Second*1,
+			httprate.WithKeyFuncs(httprate.KeyByIP, httprate.KeyByEndpoint),
+		))
+
+		mux.Post("/signup", app.signUp)
+		mux.Post("/login", app.login)
 	})
-
-	mux.Post("/v1/users/signup", app.signUp)
-	mux.Post("/v1/users/login", app.login)
 
 	mux.Get("/v1/users/validate", app.validateToken)
 

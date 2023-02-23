@@ -146,7 +146,6 @@ func (app *application) validateToken(w http.ResponseWriter, r *http.Request) {
 
 	splitToken := strings.Split(reqToken, "Bearer")
 	if len(splitToken) != 2 {
-		fmt.Println(splitToken[0], splitToken[1])
 		app.errorJSON(w, errors.New("security token malformed"), http.StatusForbidden)
 		return
 	}
